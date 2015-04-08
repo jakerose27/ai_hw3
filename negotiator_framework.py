@@ -1,7 +1,7 @@
 from csv import DictReader
 from sys import argv, exit
 from itertools import islice
-from negotiator import Negotiator
+from ceh4ws import Negotiator
 from random import seed, randint
 
 # read_scenario(parameterfile_name : String) --> (int, list(dict))
