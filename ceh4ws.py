@@ -1,6 +1,7 @@
 from negotiator_base import BaseNegotiator
 from itertools import permutations
 from collections import OrderedDict
+import numpy as np
 
 # Example negotiator implementation, which randomly chooses to accept
 # an offer or return with a randomized counteroffer.
@@ -15,6 +16,7 @@ class Negotiator(BaseNegotiator):
     def __init__(self):
         BaseNegotiator.__init__(self)
         self.last_enemy_util = 0
+        self.enemy_util = []
         self.last_util = 0
         self.results = {}
         self.round = 1
@@ -27,7 +29,6 @@ class Negotiator(BaseNegotiator):
         print("MAX_UTIL: {util}".format(util=self.max_utility))
         self.possibilities = self.get_possibilities(preferences)
 
-    # TO DO: THIS BULLSHIT
     def make_offer(self, offer):
         new_offer = ""
         if self.round == 1:
@@ -52,6 +53,19 @@ class Negotiator(BaseNegotiator):
 
     def receive_utility(self, utility):
         self.last_enemy_util = utility
+        self.enemy_util.append(self.last_enemy_util)
+        print("ENEMY_UTIL: {util}".format(util=self.enemy_util))
+        slope = 0
+        if len(self.enemy_util) > 1:
+
+            x = np.array([x for x in range(len(self.enemy_util))])
+            y = np.array(self.enemy_util[:])
+
+            [a, b] = np.polyfit(x, y, 1)
+            slope = a
+
+        print("SLOPE: {util}".format(util=slope))
+        self.enemy_util_slope = slope
 
     # A round has ended. Store the results. Increment Round Counter
     def receive_results(self, results):
