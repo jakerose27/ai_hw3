@@ -10,8 +10,6 @@ from collections import OrderedDict
 
 
 class Negotiator(BaseNegotiator):
-    # Override the make_offer method from BaseNegotiator to accept a given offer 5%
-    # of the time, and return a random permutation the rest of the time.
     def __init__(self):
         BaseNegotiator.__init__(self)
         self.last_enemy_util = 0
@@ -23,6 +21,7 @@ class Negotiator(BaseNegotiator):
         self.enemy_util_slope = []
         self.init_enemy_util = 0
         self.enemy_greed_slope = 0
+        self.THRESHOLD = 0.9
 
     def initialize(self, preferences, iter_limit):
         self.preferences = preferences[:]
@@ -30,8 +29,10 @@ class Negotiator(BaseNegotiator):
         self.max_utility = self.get_utility(preferences)
         print("MAX_UTIL: {util}".format(util=self.max_utility))
         self.possibilities = self.get_possibilities(preferences)
+        self.threshold_increment = (0.9-0.5)/(iter_limit - 3)
 
     def make_offer(self, offer):
+        print("NEGOTIATION ROUND {round}".format(round=self.round))
         new_offer = ""
         if self.round == 1:
             self.first = True if (offer == None) else False
@@ -42,8 +43,8 @@ class Negotiator(BaseNegotiator):
             new_offer = self.accept(offer)
         else:
             if self.worth_it(offer):
-               self.offer = offer[:]
-               return self.offer 
+                self.offer = offer[:]
+                return self.offer
             else:
                 bad_offer = self.possibilities.keys().index(tuple(self.offer))
                 new_offer = self.possibilities.keys()[bad_offer-1][:]
@@ -69,7 +70,7 @@ class Negotiator(BaseNegotiator):
         print("LAST SLOPE: {util}".format(util=slope))
         self.enemy_avg_slope = slope
 
-    # A round has ended. Store the results. Increment Round Counter
+    # A round has ended. Store the results.
     def receive_results(self, results):
         self.results[self.round] = results
 
@@ -92,12 +93,12 @@ class Negotiator(BaseNegotiator):
             return []
 
     def worth_it(self, offer):
-        THRESHOLD = self.get_threshold()
+        self.incr_threshold()
         our_util = self.get_utility(offer)
         grade = float(our_util) / float(self.max_utility)
         print("Grade: {percent}".format(percent=grade))
-
-        if grade <= THRESHOLD:
+        print("Threshold: {thresh}".format(thresh=self.THRESHOLD))
+        if grade <= self.THRESHOLD:
             return False
         else:
             return True
@@ -116,7 +117,14 @@ class Negotiator(BaseNegotiator):
         sorted_kv = OrderedDict(sorted(kv_store.items(), key=lambda t: t[1]))
         return sorted_kv
 
-    def get_threshold(self):
-        if self.round / self.iter_limit <= .3:
-            return 0.9
+    def incr_threshold(self):
+        print("This is within the first {percent}%".format(percent=((float)(self.round)/(float)(self.iter_limit))*100))
+        if (float)(self.round)/(float)(self.iter_limit) <= .3:
+            print("Not Decrementing Threshold")
+            return
         else:
+            print("Decrementing Threshold")
+            if self.enemy_avg_slope <= self.enemy_greed_slope:
+                self.THRESHOLD -= (self.threshold_increment)/2.0
+            else:
+                self.THRESHOLD -= self.threshold_increment
