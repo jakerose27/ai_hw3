@@ -12,27 +12,28 @@ from collections import OrderedDict
 class Negotiator(BaseNegotiator):
     def __init__(self):
         BaseNegotiator.__init__(self)
-        self.last_enemy_util = 0
-        self.enemy_util = []
-        self.last_util = 0
         self.results = {}
-        self.round = 1
-        self.first = False
+        self.successful_results = []
+        self.best_threshold = 0.5
+
+    def initialize(self, preferences, iter_limit):
         self.enemy_util_slope = []
         self.init_enemy_util = 0
         self.enemy_greed_slope = 0
-        self.THRESHOLD = 0.9
+        self.last_enemy_util = 0
+        self.enemy_util = []
+        self.last_util = 0
         self.our_last_offer = []
         self.enemy_first_offer = []
-
-    def initialize(self, preferences, iter_limit):
+        self.first = False
+        self.THRESHOLD = 0.9
         self.preferences = preferences[:]
         self.iter_limit = iter_limit
         self.max_utility = self.get_utility(preferences)
         print("MAX_UTIL: {util}".format(util=self.max_utility))
-        self.possibilities = self.get_possibilities(preferences)
-        self.threshold_increment = (0.9-0.5)/(iter_limit - 3)
+        self.threshold_increment = (0.9-self.best_threshold)/(iter_limit - 3)
         self.offers_made = []
+        self.round = 1
 
     def make_offer(self, offer):
         print("NEGOTIATION ROUND {round}".format(round=self.round))
@@ -112,9 +113,14 @@ class Negotiator(BaseNegotiator):
 
 
 
-    # A round has ended. Store the results.
+    # A round has ended. Store the results. (Success/A Points/B Points/Rounds)
     def receive_results(self, results):
-        self.results[self.round] = results
+        if (results[0]):
+
+            self.successful_results.append([results, self.THRESHOLD])
+        self.best_threshold = (sum([x[1] for x in self.successful_results])/len(self.successful_results)) \
+            if len(self.successful_results) != 0 else 0.5
+        print("New Final Threshold = {bt}".format(bt=self.best_threshold))
 
     def make_first_offer(self, offer):
         if self.first:
@@ -152,13 +158,6 @@ class Negotiator(BaseNegotiator):
         value = self.utility()
         self.offer = temp[:]
         return value
-
-    def get_possibilities(self, preferences):
-        kv_store = {}
-        for p in permutations(preferences):
-            kv_store[p] = self.get_utility(p)
-        sorted_kv = OrderedDict(sorted(kv_store.items(), key=lambda t: t[1]))
-        return sorted_kv
 
     def incr_threshold(self):
         print("This is within the first {percent}%".format(percent=((float)(self.round)/(float)(self.iter_limit))*100))
