@@ -71,7 +71,7 @@ if __name__ == "__main__":
     negotiator_b = ceh4ws()
     # negotiator_b = ceh4ws()
     for scenario in argv[1:]:
-        for i in range(10):
+        for i in range(1):
             # Get the scenario parameters
             (num_iters, mapping) = read_scenario(scenario)
             # Separate the mapping out for each negotiator, and sort the items from it into a list
