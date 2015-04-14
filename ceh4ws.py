@@ -1,6 +1,4 @@
 from negotiator_base import BaseNegotiator
-from itertools import permutations
-from collections import OrderedDict
 
 # Example negotiator implementation, which randomly chooses to accept
 # an offer or return with a randomized counteroffer.
