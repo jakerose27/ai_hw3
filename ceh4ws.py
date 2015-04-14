@@ -15,6 +15,21 @@ class Negotiator(BaseNegotiator):
         self.results = {}
         self.successful_results = []
         self.best_threshold = 0.5
+        self.enemy_first_offer = []
+        self.enemy_avg_slope = 0
+        self.enemy_greed_slope = 0
+        self.last_enemy_util = 0
+        self.our_last_offer = []
+        self.first = False
+        self.enemy_util_slope = []
+        self.init_enemy_util = 0
+        self.enemy_util = []
+        self.last_util = 0
+        self.THRESHOLD = 0.9
+        self.max_utility = 0
+        self.threshold_increment = 0.1
+        self.offers_made = []
+        self.round = 1
 
     def initialize(self, preferences, iter_limit):
         self.enemy_util_slope = []
@@ -36,14 +51,13 @@ class Negotiator(BaseNegotiator):
         self.round = 1
 
     def make_offer(self, offer):
-        print("NEGOTIATION ROUND {round}".format(round=self.round))
-        new_offer = ""
+        # print("NEGOTIATION ROUND {round}".format(round=self.round))
         if self.round == 1:
             self.our_last_offer = self.preferences[:]
-            self.first = True if (offer == None) else False
+            self.first = True if (offer is None) else False
             new_offer = self.make_first_offer(offer)
         elif self.round == self.iter_limit:
-            new_offer = self.make_last_offer(offer)
+            new_offer = self.make_last_offer()
         elif self.round == self.iter_limit+1:
             new_offer = self.accept(offer)
         else:
@@ -67,7 +81,7 @@ class Negotiator(BaseNegotiator):
         return new_offer[:]
 
     def receive_utility(self, utility):
-        print("ROUND: {r}".format(r=self.round))
+        # print("ROUND: {r}".format(r=self.round))
         if self.first:
             if self.round > self.iter_limit:
                 return
@@ -76,30 +90,29 @@ class Negotiator(BaseNegotiator):
                 return
         self.last_enemy_util = utility
         self.enemy_util.append(self.last_enemy_util)
-        print("ENEMY_UTIL: {util}".format(util=self.enemy_util))
+        # print("ENEMY_UTIL: {util}".format(util=self.enemy_util))
         slope = 0
         if len(self.enemy_util) > 1:
             current_slope = self.enemy_util[-1] - self.enemy_util[-2]
             self.enemy_util_slope.append(current_slope)
-            print("All Enemy Slopes: {sls}".format(sls=self.enemy_util_slope))
+            # print("All Enemy Slopes: {sls}".format(sls=self.enemy_util_slope))
             slope = float(sum(self.enemy_util_slope)) / float(len(self.enemy_util_slope))
-            print("New Average Slope: {sl}".format(sl=slope))
+            # print("New Average Slope: {sl}".format(sl=slope))
         elif len(self.enemy_util) == 1:
             equilibrium = float(self.last_enemy_util) / 2.0
-            self.enemy_greed_slope = (-1.0)*(equilibrium) / self.iter_limit
-            print("ENEMY GREED SLOPE: {e}".format(e=self.enemy_greed_slope))
+            self.enemy_greed_slope = (-1.0) * equilibrium / self.iter_limit
+            # print("ENEMY GREED SLOPE: {e}".format(e=self.enemy_greed_slope))
         self.enemy_avg_slope = slope
 
     def generate_offer(self):
         possibilities = self.make_possibilities(self.our_last_offer)
-        max = []
+        max_o = []
         max_u = 0
         for p in possibilities:
             if p not in self.offers_made:
-                max = p if self.get_utility(p) > max_u else max
-                max_u = self.get_utility(max)
-        return max
-
+                max_o = p if self.get_utility(p) > max_u else max_o
+                max_u = self.get_utility(max_o)
+        return max_o
 
     def make_possibilities(self, the_list):
         # print("Possibilities of {the_list}".format(the_list=the_list))
@@ -135,16 +148,15 @@ class Negotiator(BaseNegotiator):
             self.enemy_first_offer = offer[:]
             return self.preferences
 
-    def make_last_offer(self, offer):
+    def make_last_offer(self):
         if self.enemy_avg_slope/self.enemy_greed_slope < 0.5:
-            print("BE MEAN")
+            # print("BE MEAN")
             return self.preferences
         else:
-            print("BE FAIR")
+            # print("BE FAIR")
             new_offer = self.generate_offer()
             self.offer = new_offer[:]
             return new_offer[:]
-
 
     def accept(self, offer):
         if self.worth_it(offer):
@@ -171,13 +183,12 @@ class Negotiator(BaseNegotiator):
         return value
 
     def incr_threshold(self):
-        # print("This is within the first {percent}%".format(percent=((float)(self.round)/(float)(self.iter_limit))*100))
-        if (float)(self.round)/(float)(self.iter_limit) <= .3:
+        if float(self.round)/float(self.iter_limit) <= .3:
             # print("Not Decrementing Threshold")
             return
         else:
             # print("Decrementing Threshold")
             if self.enemy_avg_slope <= self.enemy_greed_slope:
-                self.THRESHOLD -= (self.threshold_increment)/2.0
+                self.THRESHOLD -= self.threshold_increment/2.0
             else:
                 self.THRESHOLD -= self.threshold_increment
